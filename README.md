@@ -8,6 +8,8 @@ application Flask, évaluation Recall@K / Precision@K.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Windows : .venv\Scripts\activate
+pip install -e .                                        # pip install -e . puis requirements.txt
+pip install  requirements.txt                           # pip install -e . puis requirements.txt
 make install                                           # pip install -e . puis requirements.txt
 make test                                              # tests sans GPU ni modèles
 ```
