@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab active" data-kind="text">Texte</button>
+    <button type="button" class="tab" data-kind="image">Image</button>
+    <button type="button" class="tab" data-kind="audio">Audio</button>
+  </div>
+
+  <form id="search-form" autocomplete="off">
+    <div class="row" id="field-text">
+      <input type="search" id="q" maxlength="500" placeholder="Décrire ce que vous cherchez, en anglais (ex. a dog running on grass)">
+    </div>
+    <div class="row hidden" id="field-file">
+      <input type="file" id="file">
+      <div id="preview"></div>
+    </div>
+
+    <div class="row options">
+      <label>Résultats (k)
+        <select id="k"><option>5</option><option selected>10</option><option>20</option><option>50</option></select>
+      </label>
+      <label>Mode
+        <select id="mode">
+          <option value="fused">Fusionné (multimodal)</option>
+          <option value="modal">Mono-modal</option>
+        </select>
+      </label>
+      <label>Modalité
+        <select id="f-modality"><option value="">toutes</option><option value="image">image</option><option value="audio">audio</option></select>
+      </label>
+      <label>Dataset
+        <select id="f-dataset"><option value="">tous</option><option>flickr8k</option><option>clotho</option></select>
+      </label>
+      <label>Split
+        <select id="f-split"><option value="">tous</option><option>train</option><option>val</option><option>test</option></select>
+      </label>
+      <label>Score min.
+        <input type="number" id="f-min" step="0.01" min="-1" max="1" placeholder="0.20">
+      </label>
+    </div>
+
+    <div class="row">
+      <button type="submit" class="primary" id="go">Rechercher</button>
+      <button type="button" id="classify" class="hidden">Classer le son (zero-shot ESC-50)</button>
+      <span id="status" role="status"></span>
+    </div>
+  </form>
+</section>
+
+<section id="classes" class="panel hidden"></section>
+<section id="results" class="grid"></section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/app.js') }}"></script>{% endblock %}

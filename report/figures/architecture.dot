@@ -1,0 +1,31 @@
+digraph G {
+  rankdir=TB; nodesep=0.25; ranksep=0.32; dpi=220; fontname="DejaVu Sans";
+  node [shape=box, style="rounded,filled", fillcolor="#EEF2FA", color="#1F3864", fontname="DejaVu Sans", fontsize=10, margin="0.14,0.07", width=3.0];
+  edge [color="#1F3864", fontname="DejaVu Sans", fontsize=9, arrowsize=0.7];
+
+  subgraph cluster_off {
+    label="HORS-LIGNE : indexation (GPU Colab / Kaggle)"; labeljust=l; fontsize=11; fontname="DejaVu Sans Bold"; color="#1F3864"; style="rounded"; margin=12;
+    a1 [label="Collections brutes\nFlickr8k · Clotho · ESC-50"];
+    a2 [label="Ingestion + prétraitement\nmanifest.csv · texte NFKC · image 224² · audio 16 kHz"];
+    a3 [label="Encodeurs gelés + tête audio\nCLIP-T · CLIP-V · AST+MLP · SBERT"];
+    a4 [label="Embeddings .npy\n(N × 512, float32, norme L2)"];
+    a5 [label="Fusion tardive\nz_item = Σ_m w_m · z_m"];
+    a6 [label="Index FAISS (IndexFlatIP) ×4\n+ métadonnées SQLite", fillcolor="#DDE6F7"];
+    a7 [label="Projections 2D précalculées\nPCA · t-SNE · UMAP", fillcolor="#FFF8E1", color="#C9A227"];
+    a1 -> a2 -> a3 -> a4 -> a5 -> a6;
+    a4 -> a7;
+  }
+  subgraph cluster_on {
+    label="EN LIGNE : requête (CPU, Flask)"; labeljust=l; fontsize=11; fontname="DejaVu Sans Bold"; color="#2E7D32"; style="rounded"; margin=12;
+    node [color="#2E7D32", fillcolor="#EAF5EA"];
+    b1 [label="Requête : texte | image | audio\n+ filtres + k"];
+    b2 [label="Validation + prétraitement\n(type, taille, durée ≤ 10 s)"];
+    b3 [label="Encodeur de la modalité\n→ vecteur requête z_q (512)"];
+    b4 [label="Recherche FAISS\nproduit scalaire, top-k'"];
+    b5 [label="Filtres métadonnées\n+ agrégation par item"];
+    b6 [label="Réponse : top-k, scores,\nscores par modalité (JSON / HTML)"];
+    b1 -> b2 -> b3 -> b4 -> b5 -> b6;
+  }
+  a6 -> b4 [style=dashed, label=" charge au\n démarrage", constraint=false];
+  a7 -> b6 [style=dashed, color="#C9A227", label=" page\n embeddings", constraint=false];
+}

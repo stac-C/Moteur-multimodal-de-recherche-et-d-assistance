@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Embeddings · Moteur multimodal{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>Espace commun (512 d) projeté en 2D</h2>
+  <div class="row options">
+    <label>Méthode
+      <select id="method"><option value="pca">PCA</option><option value="tsne">t-SNE</option><option value="umap">UMAP</option></select>
+    </label>
+    <label>Modalité
+      <select id="modality"><option value="">toutes</option><option value="image">image</option><option value="caption">légende</option><option value="audio">audio</option></select>
+    </label>
+    <label>Dataset
+      <select id="dataset"><option value="">tous</option><option>flickr8k</option><option>clotho</option><option>esc50</option></select>
+    </label>
+    <label>Couleur
+      <select id="color"><option value="modality">par modalité</option><option value="label">par classe ESC-50</option></select>
+    </label>
+    <label>Points max.
+      <select id="limit"><option>500</option><option>1000</option><option selected>2000</option></select>
+    </label>
+  </div>
+  <div id="info" role="status"></div>
+  <div class="canvas-wrap"><canvas id="plot"></canvas><div id="tip" class="tip hidden"></div></div>
+  <div id="legend" class="legend"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/embeddings.js') }}"></script>{% endblock %}

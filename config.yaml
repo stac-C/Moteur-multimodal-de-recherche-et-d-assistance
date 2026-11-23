@@ -1,0 +1,27 @@
+seed: 42
+device: auto                 # auto | cpu | cuda
+emb_dim: 512
+models:
+  clip: openai/clip-vit-base-patch32
+  sbert: sentence-transformers/all-MiniLM-L6-v2
+  ast: MIT/ast-finetuned-audioset-10-10-0.4593
+fusion:
+  weights_image: {image: 0.7, caption: 0.3}     # réglés sur la validation (grid_search_weights)
+  weights_audio: {audio: 0.7, caption: 0.3}
+audio: {sample_rate: 16000, window_s: 10, min_tail_s: 1.0, max_upload_s: 30}
+train_audio:
+  epochs: 40
+  batch_size: 256
+  lr: 0.001
+  weight_decay: 0.01
+  patience: 6
+  hidden: 1024
+  dropout: 0.1
+train_early:
+  epochs: 30
+  batch_size: 256
+  lr: 0.0005
+  weight_decay: 0.01
+  patience: 5
+search: {default_k: 10, max_k: 50, overfetch: 10}
+paths: {artifacts: artifacts, data: data}

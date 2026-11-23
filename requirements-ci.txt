@@ -1,0 +1,8 @@
+# Dépendances de la CI : tests des contrats, de l'index, des métriques et de l'API (pas de modèles).
+numpy>=1.26,<3
+pandas>=2.0
+pyyaml>=6.0
+faiss-cpu>=1.7.4
+flask>=3.0
+pytest>=8.0
+ruff>=0.4

@@ -1,0 +1,27 @@
+\section{Expériences et résultats}\label{sec:resultats}
+\subsection{Protocole}
+Texte$\to$image sur le test de Flickr8k ($1\,000$ images, $5\,000$ requêtes), leave-one-out, $w$ réglé sur la validation.
+Les systèmes comparés : mono-texte (SBERT et CLIP), mono-image (CLIP), fusion tardive, fusion précoce.
+\TODO{n et K exacts, poids $w$ retenu, matériel.}
+
+\subsection{Mono-modal contre multimodal}
+\inputopt{../artifacts/figures/results_tables.tex}
+\figopt{fig_mono_vs_multi.png}{0.75}{Texte $\to$ image : mono-modal contre multimodal.}
+\TODO{commenter : le multimodal apporte-t-il un gain, de quelle taille, avec quel intervalle de confiance ? comparer au hasard.}
+
+\subsection{Réglage de la fusion et ablations}
+\figopt{fig_fusion_weights.png}{0.6}{Réglage de $w$ sur la validation (image et audio).}
+\figopt{fig_dim_ablation.png}{0.6}{Ablation de la dimension $d$.}
+\TODO{commenter le $w$ retenu, l'effet de $d$, la fusion précoce par rapport à la tardive.}
+
+\subsection{\texorpdfstring{Image$\leftrightarrow$texte, audio$\leftrightarrow$texte, audio$\to$image}{Image-texte, audio-texte, audio vers image}}
+\TODO{tableaux R@K, P@K, MRR depuis \texttt{results.json} ; audio$\to$image : donner la précision@10, le taux de base et le
+gain par classe (proxy, voir limites).}
+
+\subsection{Visualisation de l'espace commun}
+\figopt{fig_proj_pca.png}{0.48}{PCA.}\hfill\figopt{fig_proj_tsne.png}{0.48}{t-SNE.}
+\figopt{fig_proj_umap.png}{0.48}{UMAP.}
+\TODO{commenter l'alignement des modalités et le « modality gap » \cite{liang2022gap} observé.}
+
+\subsection{Étude de cas}
+\TODO{choisir 2 succès et 2 échecs dans \texttt{case\_studies.json}, montrer requête, image attendue, top-5, expliquer l'échec.}

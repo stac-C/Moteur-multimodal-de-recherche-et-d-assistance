@@ -1,0 +1,25 @@
+\section{Introduction}
+\subsection{Contexte et problématique}
+Rechercher dans une collection multimédia exige de comparer des objets de nature différente : un texte, une image,
+un son. L'approche retenue consiste à représenter les trois médias dans \emph{un même espace vectoriel} de
+dimension $d=512$, où la similarité cosinus mesure la proximité sémantique \cite{radford2021clip,girdhar2023imagebind}.
+\TODO{2 à 3 phrases : cas d'usage concret (ex. retrouver des images ou des sons à partir d'une description).}
+
+\subsection{Objectifs}
+\begin{itemize}[noitemsep]
+  \item construire un espace commun texte--image--audio à partir d'encodeurs pré-entraînés ;
+  \item comparer des stratégies de fusion (précoce, tardive, attention croisée) et justifier le choix ;
+  \item réaliser texte$\to$image, image$\to$texte et audio$\to$contenu, plus une tâche secondaire (classification
+        audio zero-shot) ;
+  \item fournir une application Flask (indexation, recherche, upload, top-$k$, scores, filtres, visualisation) ;
+  \item évaluer par Recall@K et Precision@K, avec comparaison mono-modal contre multimodal et analyse des biais.
+\end{itemize}
+
+\subsection{Contributions}
+\TODO{3 puces, à ajuster aux résultats obtenus : (i) le texte comme pivot et la tête audio alignée ; (ii) la fusion
+tardive en un seul vecteur indexable ; (iii) l'évaluation en leave-one-out et l'analyse des biais.}
+
+\subsection{Plan du rapport}
+La section~\ref{sec:donnees} présente les données, la section~\ref{sec:methode} la méthode, la
+section~\ref{sec:audio} la modalité audio, la section~\ref{sec:archi} l'architecture et l'application, la
+section~\ref{sec:resultats} les résultats et la section~\ref{sec:discussion} la discussion, les biais et les limites.

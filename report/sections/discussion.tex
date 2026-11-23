@@ -1,0 +1,24 @@
+\section{Discussion, biais et limites}\label{sec:discussion}
+\subsection{Biais et limites de la fusion}
+\begin{table}[ht]\centering\small
+\begin{tabular}{@{}p{3.2cm}p{5.6cm}p{5.6cm}@{}}
+\toprule
+Source & Constat à documenter & Mesure ou atténuation\\
+\midrule
+Biais des jeux de données & légendes en anglais, culture occidentale, scènes de personnes et d'animaux surreprésentées & \texttt{bias\_report.json} : part par groupe, Recall par groupe ($n\ge30$, IC 95\,\%)\\
+Déséquilibre des modalités & texte pivot ; image et audio jamais appariés ; 8\,091 images contre $\approx$ 6\,000 clips & comparaison audio seul / fusion ; perspective : paires image--audio\\
+Dérive de domaine & Clotho (clips de 15 à 30 s) contre ESC-50 (5 s, sons isolés) ; pré-entraînement AudioSet & zero-shot ESC-50 ; recouvrement Freesound à signaler\\
+Alignement imparfait & écart entre modalités \cite{liang2022gap}, concentration des voisins (\emph{hubness}) \cite{radovanovic2010hubs} & PCA/UMAP colorées par modalité ; scores non calibrés entre modalités\\
+Fusion tardive & poids global $w$ non adaptatif ; moyenne de légendes qui dilue les détails & ablation de $w$ ; fusion précoce ; re-ranking par attention croisée\\
+Évaluation & leave-one-out simule des légendes absentes de la requête réelle ; proxy audio$\to$image sans vérité terrain ; une seule graine & intervalles de confiance ; plusieurs graines ; évaluation humaine\\
+\bottomrule
+\end{tabular}
+\caption{Biais et limites, avec la mesure correspondante.}
+\end{table}
+\figopt{fig_bias_groups.png}{0.7}{Texte $\to$ image par groupe thématique : fusion contre image seule.}
+\TODO{3 paragraphes : (1) biais de données chiffrés, (2) écarts de Recall entre groupes (groupes avec $n\ge30$), (3) ce que la
+fusion corrige ou aggrave.}
+
+\subsection{Perspectives}
+Fine-tuning partiel d'AST, baseline LAION-CLAP \cite{wu2023clap}, légendes multilingues (français), calibration des scores entre
+modalités, annotation humaine image--audio, index approché si la collection dépasse $10^6$ éléments.

@@ -1,0 +1,67 @@
+\section{Méthodologie}\label{sec:methode}
+\subsection{Encodeurs et espace commun}
+Le texte est encodé par la tour texte de CLIP ViT-B/32 \cite{radford2021clip} (ancre gelée, $d=512$), l'image par sa tour
+visuelle \cite{dosovitskiy2021vit}, l'audio par AST \cite{gong2021ast} suivi d'une tête MLP entraînée (section~\ref{sec:audio}).
+Une baseline mono-texte utilise Sentence-BERT \cite{reimers2019sbert} ($384$ dimensions, espace séparé). Tous les
+embeddings de l'espace commun sont normalisés : $z=u/\norm{u}$.
+
+\paragraph{Texte (E1).} Les états cachés $H_l$ donnent $h=\frac{1}{|M|}\sum_{l\in M}H_l$ (SBERT, $M$ : positions non masquées)
+ou le jeton \texttt{[EOS]} (CLIP).
+
+\paragraph{Similarité (E4).} Pour des vecteurs unitaires, $\norm{z_a-z_b}^2=2-2\,z_a\!\cdot\! z_b$ : classer par cosinus, par
+produit scalaire ou par distance euclidienne croissante donne le même ordre, ce qui autorise un index FAISS
+\texttt{IndexFlatIP} \cite{johnson2021faiss}.
+
+\paragraph{Choix de $d=512$.} Imposé par CLIP. La borne de Johnson--Lindenstrauss
+$d\ge 4\ln n/(\varepsilon^2/2-\varepsilon^3/3)$ vaut $\approx 628$ pour $n=10^4$ et $\varepsilon=0{,}4$ : elle est pessimiste et ne
+justifie pas seule ce choix, d'où l'ablation $d\in\{128,256,512\}$ (section~\ref{sec:resultats}).
+
+\subsection{Stratégies de fusion}
+\begin{table}[ht]\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Critère & Précoce & Tardive & Attention croisée\\
+\midrule
+Données d'entraînement & paires multimodales & aucune & beaucoup\\
+Coût d'inférence & faible & très faible & élevé\\
+Modalité manquante & fragile & robuste & fragile\\
+Interprétabilité & faible & élevée & moyenne\\
+\bottomrule
+\end{tabular}
+\caption{Comparaison des stratégies de fusion.}
+\end{table}
+La \textbf{fusion tardive} est retenue. Pour une requête normalisée $q$ et un item $i$ de vecteurs $z_i^m$,
+\begin{equation}
+  s_{\text{late}}(q,i)=\sum_m w_m\,(q\cdot z_i^m)=q\cdot\Big(\sum_m w_m z_i^m\Big)=q\cdot\bar z_i,\qquad w_m\ge0,\ \sum_m w_m=1 .
+\end{equation}
+Un seul vecteur $\bar z_i$ par item suffit (et $\norm{\bar z_i}\le 1$). La \textbf{fusion précoce} (E6)
+$z_{\text{fus}}=\operatorname{norm}(W_f[z_v;z_c]+b_f)$, $W_f\in\R^{512\times1024}$, est une ablation, initialisée sur la fusion tardive
+$W_f=[w_{\text{mod}}I\,|\,w_{\text{cap}}I]$ ; l'attention croisée $\operatorname{softmax}(QK^\top/\sqrt{d_k})V$ (E7) n'est qu'une
+perspective.
+
+\subsection{Perte contrastive (E5)}
+Pour un lot de $N$ paires $(x_i,y_i)$ et $S_{ij}=z^x_i\!\cdot\! z^y_j/\tau$ :
+\begin{align}
+  \mathcal L_{x\to y}&=-\frac1N\sum_i\log\frac{e^{S_{ii}}}{\sum_j e^{S_{ij}}},\qquad
+  \mathcal L_{y\to x}=-\frac1N\sum_j\log\frac{e^{S_{jj}}}{\sum_i e^{S_{ij}}},\\
+  \mathcal L&=\tfrac12\big(\mathcal L_{x\to y}+\mathcal L_{y\to x}\big).
+\end{align}
+Avec $p_{ij}=e^{S_{ij}}/\sum_k e^{S_{ik}}$, on a $\partial\mathcal L_{x\to y}/\partial S_{ij}=\frac1N(p_{ij}-\delta_{ij})$ et donc
+\begin{equation}
+  \frac{\partial\mathcal L_{x\to y}}{\partial z^x_i}=\frac{1}{N\tau}\sum_j(p_{ij}-\delta_{ij})\,z^y_j ,
+\end{equation}
+qui attire $x_i$ vers son positif et le repousse des négatifs en proportion de $p_{ij}$. La perte vérifie
+$I(x;y)\ge\log N-\mathcal L$ \cite{oord2018cpc}. \emph{Exemple} ($N=2$, $\tau=0{,}1$, $\cos30^\circ$ arrondi à $0{,}8660$) :
+$\mathcal L=0{,}025407$ et $\partial\mathcal L/\partial z^x_1=(-0{,}04591;\,+0{,}04591)$.
+
+\subsection{Métriques et protocole d'évaluation (E8)}
+Pour une requête d'ensemble pertinent $R_q$ et de top-$K$ noté $T_K(q)$ :
+\begin{align}
+  \text{R@K}&=\tfrac1{|Q|}\sum_q\mathbb 1[R_q\cap T_K(q)\neq\emptyset],\quad
+  \text{P@K}=\tfrac{|R_q\cap T_K(q)|}{K},\quad
+  \text{MRR}=\tfrac1{|Q|}\sum_q\tfrac1{\text{rang}_q}.
+\end{align}
+\textbf{Leave-one-out :} comme un item contient ses propres légendes, la légende utilisée comme requête est retirée du
+contexte de son item ($c^{\text{loo}}_{i,r}=\operatorname{norm}(\sum_{k\neq r}c_{i,k})$), sinon les scores seraient gonflés.
+Le réglage ($w$, $d$, hyperparamètres) se fait sur la validation ; le test n'est évalué qu'une fois.
+\TODO{niveaux de hasard à citer : R@K $=K/n$ en texte$\to$image ($0{,}1\,\%$, $0{,}5\,\%$, $1\,\%$ pour $n=1000$) ; $2\,\%$ pour ESC-50.}

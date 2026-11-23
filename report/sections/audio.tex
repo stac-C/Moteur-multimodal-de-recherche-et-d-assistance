@@ -1,0 +1,21 @@
+\section{Modalité audio et tâche secondaire}\label{sec:audio}
+\subsection{Du signal à l'embedding (E2, E3)}
+Le signal $x[n]$ est rééchantillonné à 16\,kHz. La STFT $X[m,k]=\sum_{n=0}^{N-1}x[n+mH]\,w[n]\,e^{-j2\pi kn/N}$ ($N=400$,
+$H=160$, soit 25\,ms et 10\,ms) donne la puissance $P=|X|^2$, puis le log-Mel $S=\log(M P+\varepsilon)$ avec 128 bandes.
+AST \cite{gong2021ast} découpe $S$ en patchs $16\times16$ de pas 10 : $12\times101=1\,212$ tokens pour 10 s, 12 couches,
+sortie $h_a\in\R^{768}$. La tête $u_a=W_2\,\mathrm{GELU}(W_1h_a+b_1)+b_2$ ($768\to1024\to512$, $1\,312\,256$ paramètres)
+est suivie de la normalisation L2.
+
+\subsection{Entraînement}
+La tête est entraînée sur Clotho avec la perte (E5) contre les embeddings de légendes CLIP gelés ; une seule légende par clip
+et par lot évite les faux négatifs. Hyperparamètres : AdamW, lr $10^{-3}$, décroissance $0{,}01$, lot 256, 40 époques,
+patience 6, $\tau$ appris (initial $0{,}07$, borné à $0{,}01$). Critère d'arrêt : somme de six Recall@K (audio$\to$texte
+et texte$\to$audio, $K\in\{1,5,10\}$) sur la validation.
+\figopt{fig_audio_training.png}{0.6}{Entraînement de la tête audio : perte et Recall@10 de validation.}
+
+\subsection{Tâche secondaire : classification zero-shot ESC-50}
+Pour chaque classe $c$, le prompt « the sound of $c$ » est encodé par CLIP texte ; la prédiction est
+$\hat y=\argmax_c z_{\text{audio}}\cdot z_{t_c}$. Le hasard vaut $2\,\%$ (50 classes).
+\figopt{fig_zero_shot_per_class.png}{0.6}{Exactitude zero-shot par classe ESC-50.}
+\figopt{fig_zero_shot_confusion.png}{0.7}{Matrice de confusion normalisée.}
+\TODO{commenter : classes bien et mal reconnues, confusions fréquentes, effet du décalage de domaine Clotho$\to$ESC-50.}

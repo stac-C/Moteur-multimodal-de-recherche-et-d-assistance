@@ -1,0 +1,35 @@
+\section{Architecture du système et application}\label{sec:archi}
+\subsection{Chaîne de traitement}
+L'architecture sépare un pipeline \emph{hors-ligne} (ingestion, encodage, entraînement, fusion, indexation) d'un pipeline
+\emph{en ligne} (requête, encodage de la modalité, recherche, filtres, réponse).
+\begin{figure}[ht]\centering
+\includegraphics[width=\linewidth]{architecture.png}
+\caption{Chaîne complète : de la collection brute à la réponse Flask.}
+\end{figure}
+
+\subsection{Index et recherche}
+Quatre index FAISS exacts (\texttt{IndexFlatIP}) : images (8\,091), audio ($\approx$ 6\,000), légendes
+($\approx$ 70\,455) et items fusionnés ($\approx$ 14\,091), soit $\approx 202$\,Mo. Routage : texte$\to$items fusionnés ;
+image$\to$légendes agrégées par item ; audio$\to$items fusionnés (audio$\to$contenu) ; le mode mono-modal interroge les index
+séparés. Les filtres (modalité, dataset, split, label, score minimal) sont appliqués par pré-filtrage exact.
+
+\subsection{Budget de calcul}
+\begin{table}[ht]\centering\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Encodeur & MACs & FLOPs & Temps CPU estimé\\
+\midrule
+CLIP texte ($d=512$, $T=77$) & $2{,}98\cdot10^9$ & $5{,}96\cdot10^9$ & $\approx0{,}12$ s\\
+CLIP image ($d=768$, $T=50$) & $4{,}29\cdot10^9$ & $8{,}59\cdot10^9$ & $\approx0{,}17$ s\\
+AST, 10 s ($d=768$, $T=1212$) & $1{,}30\cdot10^{11}$ & $2{,}60\cdot10^{11}$ & $\approx5{,}2$ s\\
+\bottomrule
+\end{tabular}
+\caption{Coût par requête (hypothèse : 50 GFLOPS effectifs ; \TODO{mesurer sur la machine de démonstration}).}
+\end{table}
+
+\subsection{Application Flask}
+Routes : \texttt{POST /api/search}, \texttt{GET /api/item/<id>}, \texttt{GET /media/<id>}, \texttt{GET /api/embeddings},
+\texttt{POST /api/classify}, \texttt{GET /api/health}. Fonctions : indexation d'une collection, barre de recherche, upload
+image ou audio, top-$k$, scores de similarité (cosinus) et scores par modalité, filtres, page de visualisation des embeddings
+(PCA, t-SNE \cite{vandermaaten2008tsne}, UMAP \cite{mcinnes2018umap}).
+\TODO{3 captures d'écran : recherche texte, upload image, page embeddings coloriée par classe ESC-50.}

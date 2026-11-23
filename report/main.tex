@@ -1,0 +1,83 @@
+% Rapport du Projet 3 : moteur multimodal de recherche et d'assistance (texte + image + audio)
+% Compilation : make report   (pdflatex + bibtex). Les figures viennent de ../artifacts/figures/ (make figures).
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,booktabs,graphicx,xcolor,caption,enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../artifacts/figures/}{figures/}}
+\captionsetup{font=small,labelfont=bf}
+
+% --- Macros -----------------------------------------------------------------
+\newcommand{\TODO}[1]{\textcolor{red}{[À RÉDIGER : #1]}}      % à supprimer avant le rendu
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\lVert #1\rVert_2}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% \figopt{fichier}{largeur}{légende} : inclut la figure si elle existe, sinon un rappel en rouge
+\newcommand{\figopt}[3]{%
+  \IfFileExists{../artifacts/figures/#1}{\begin{figure}[ht]\centering
+    \includegraphics[width=#2\linewidth]{#1}\caption{#3}\end{figure}}%
+  {\IfFileExists{figures/#1}{\begin{figure}[ht]\centering
+    \includegraphics[width=#2\linewidth]{#1}\caption{#3}\end{figure}}%
+  {\TODO{figure \detokenize{#1} absente : lancer \texttt{make figures}}}}}
+% \inputopt{fichier} : inclut un fichier généré s'il existe
+\newcommand{\inputopt}[1]{\IfFileExists{#1}{\input{#1}}{\TODO{fichier \detokenize{#1} absent : lancer \texttt{make eval}}}}
+
+\title{Moteur multimodal de recherche et d'assistance\\
+\large Texte, image et audio dans un espace commun}
+\author{CLAUDY \and IDA \and FRESNEL \and RAPHA\"EL\\[0.5ex]
+ENSPY -- INF50101 -- Projet 3 -- Dr-Ing. TCHAGNA A}
+\date{2 d\'ecembre 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\TODO{150 mots : problème, méthode (CLIP, AST + tête MLP, fusion tardive, FAISS, Flask), principaux résultats chiffrés
+(Recall@K mono-modal contre multimodal, zero-shot ESC-50), limites.}
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{sections/intro}
+\input{sections/donnees}
+\input{sections/methode}
+\input{sections/audio}
+\input{sections/architecture}
+\input{sections/resultats}
+\input{sections/discussion}
+\input{sections/conclusion}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\appendix
+\section{Notations}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Symbole & Signification\\
+\midrule
+$d=512$ & dimension de l'espace commun\\
+$z\in\R^d,\ \norm{z}=1$ & embedding normalisé (image, texte ou audio)\\
+$\tau$ & température de la perte contrastive, $\tau=e^{-\text{logit\_scale}}$\\
+$w_m$ & poids de la modalité $m$ dans la fusion tardive, $\sum_m w_m=1$\\
+$\bar z_i$ & vecteur fusionné de l'item $i$\\
+$K=5$ & nombre de légendes par item\\
+R@K, P@K & Recall et Precision au rang $K$\\
+\bottomrule
+\end{tabular}
+
+\section{Reproductibilité}
+Dépôt Git (tag \texttt{rendu}), \texttt{requirements.txt} épinglé, graine 42, procédure : \texttt{README.md}.
+\begin{verbatim}
+make install && make data && make embed && make train && make fusion
+make index && make projections && make eval && make figures && make app
+\end{verbatim}
+\TODO{versions exactes (python, torch, transformers, faiss), matériel utilisé, durée de chaque étape.}
+
+\end{document}

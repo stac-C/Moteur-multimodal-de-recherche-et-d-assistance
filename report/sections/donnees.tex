@@ -1,0 +1,30 @@
+\section{Données et prétraitement}\label{sec:donnees}
+\subsection{Choix des jeux de données}
+Aucun jeu de données public n'aligne nativement texte, image et audio. Le \emph{texte sert de pivot} :
+image$\leftrightarrow$texte et audio$\leftrightarrow$texte sont appris et évalués avec de vraies paires, tandis que
+image$\leftrightarrow$audio se déduit par le texte \cite{girdhar2023imagebind}.
+\begin{table}[ht]\centering\small
+\begin{tabular}{@{}llp{4.2cm}p{4.2cm}@{}}
+\toprule
+Jeu & Rôle & Contenu & Limites\\
+\midrule
+Flickr8k \cite{hodosh2013flickr} & image$\leftrightarrow$texte & 8\,091 images, 5 légendes, splits 6\,000/1\,000/1\,000 & anglais, biais occidental\\
+Clotho v2 \cite{drossos2020clotho} & audio$\leftrightarrow$texte & $\approx$ 6\,000 clips de 15 à 30 s, 5 légendes & audio Freesound, anglais\\
+ESC-50 \cite{piczak2015esc} & tâche secondaire & 2\,000 clips de 5 s, 50 classes & recouvrement possible avec Clotho\\
+\bottomrule
+\end{tabular}
+\caption{Jeux de données retenus. \TODO{vérifier les tailles exactes sur les sources officielles.}}
+\end{table}
+AudioCaps a été écarté car une partie de ses clips YouTube n'est plus disponible.
+
+\subsection{Prétraitement}
+\textbf{Texte :} normalisation NFKC, suppression des caractères de contrôle, espaces normalisés ; ni mise en minuscules
+ni retrait de mots vides (inutile pour des Transformers) ; troncature à 77 tokens (CLIP) ou 256 (SBERT).
+\textbf{Image :} conversion RGB, redimensionnement $224\times224$ et normalisation de CLIP.
+\textbf{Audio :} rééchantillonnage à 16\,kHz mono, fenêtres de 10 s sans recouvrement (queue $<1$ s ignorée), moyenne des
+embeddings des fenêtres.
+
+\subsection{Découpage et statistiques}
+Les splits officiels sont gelés après la première génération de \texttt{splits.json}. La validation sert à l'arrêt
+anticipé et au réglage des poids ; le test n'est utilisé qu'une fois.
+\TODO{statistiques (longueur moyenne des légendes, mots fréquents) : voir \texttt{bias\_report.json}.}

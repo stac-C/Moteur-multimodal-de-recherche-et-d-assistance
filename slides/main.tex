@@ -1,0 +1,223 @@
+% Présentation Beamer : problème -> architecture -> méthode -> application -> résultats -> conclusion.
+% Compilation : make slides. Démonstration obligatoire (diapositives 9 et 10). ~15 diapositives.
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,booktabs,graphicx,xcolor}
+\usetheme{Madrid}
+\usecolortheme{whale}
+\setbeamertemplate{navigation symbols}{}
+\graphicspath{{../artifacts/figures/}{../report/figures/}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\norm}[1]{\lVert #1\rVert_2}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\TODO}[1]{\textcolor{red}{[#1]}}
+% \figopt{fichier}{hauteur}{} : inclut la figure si elle existe
+\newcommand{\figopt}[2]{\IfFileExists{../artifacts/figures/#1}{\includegraphics[height=#2]{#1}}%
+  {\IfFileExists{../report/figures/#1}{\includegraphics[height=#2]{#1}}{\TODO{figure \detokenize{#1} absente}}}}
+\newcommand{\inputopt}[1]{\IfFileExists{#1}{\input{#1}}{\TODO{\detokenize{#1} absent}}}
+
+\title[Moteur multimodal]{Moteur multimodal de recherche et d'assistance}
+\subtitle{Texte, image et audio dans un espace commun}
+\author[\'Equipe Projet 3]{CLAUDY \and IDA \and FRESNEL \and RAPHA\"EL}
+\institute[ENSPY]{ENSPY -- INF50101 -- Projet 3}
+\date{2 d\'ecembre 2026}
+
+\begin{document}
+
+% 1 ----------------------------------------------------------------- Orateur : FRESNEL
+\begin{frame}\titlepage\end{frame}
+
+\begin{frame}{Plan}
+  \tableofcontents
+\end{frame}
+
+\section{Problème et données}
+% 2 ------------------------------------------------------------------ Orateur : IDA
+\begin{frame}{Problème : chercher dans un corpus multimédia}
+  \begin{itemize}
+    \item Représenter \textbf{texte, image et audio} dans un \textbf{même espace} pour rechercher, comparer, interroger.
+    \item Tâches : texte$\to$image, image$\to$texte, audio$\to$contenu ; tâche secondaire : classification audio zero-shot.
+    \item Livrables : application Flask, évaluation Recall@K / Precision@K, comparaison mono-modal contre multimodal.
+  \end{itemize}
+  \TODO{1 phrase : cas d'usage concret}
+\end{frame}
+
+% 3 ------------------------------------------------------------------ Orateur : IDA
+\begin{frame}{Données : le texte comme pivot}
+  \begin{center}\small
+  \begin{tabular}{llll}
+    \toprule
+    Jeu & Rôle & Taille & Limites\\
+    \midrule
+    Flickr8k & image$\leftrightarrow$texte & 8\,091 images, 5 légendes & anglais, biais occidental\\
+    Clotho v2 & audio$\leftrightarrow$texte & $\approx$ 6\,000 clips, 5 légendes & audio Freesound\\
+    ESC-50 & zero-shot & 2\,000 clips, 50 classes & recouvrement Freesound\\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  Aucun jeu n'aligne les trois modalités : image$\leftrightarrow$audio se déduit \textbf{par le texte}.
+\end{frame}
+
+\section{Architecture}
+% 4 ---------------------------------------------------------------- Orateur : CLAUDY
+\begin{frame}{Architecture : hors-ligne et en ligne}
+  \centering\figopt{architecture.png}{0.78\textheight}
+\end{frame}
+
+% 5 ---------------------------------------------------------------- Orateur : CLAUDY
+\begin{frame}{Index et recherche}
+  \begin{itemize}
+    \item 4 index FAISS exacts \texttt{IndexFlatIP} : images, audio, légendes, items fusionnés ($\approx 202$\,Mo).
+    \item Vecteurs normalisés : $\norm{z_a-z_b}^2=2-2\,z_a\!\cdot\!z_b$, donc cosinus = produit scalaire = même classement.
+    \item Recherche exacte : $\approx 14$\,ms sur 70\,455 légendes (limitée par la mémoire) ; filtres par pré-filtrage exact.
+    \item Audio : AST $=1{,}30\cdot10^{11}$ MACs pour 10 s, soit $\approx 5$\,s sur CPU, donc collection encodée hors-ligne.
+  \end{itemize}
+\end{frame}
+
+\section{Méthode}
+% 6 --------------------------------------------------------------- Orateur : FRESNEL
+\begin{frame}{Encodeurs et espace commun ($d=512$)}
+  \begin{center}\small
+  \begin{tabular}{lll}
+    \toprule
+    Modalité & Encodeur (gelé) & Sortie\\
+    \midrule
+    Texte & CLIP ViT-B/32, tour texte (ancre) & 512\\
+    Image & CLIP ViT-B/32, tour visuel & 512\\
+    Audio & AST + tête MLP entraînée & 768 $\to$ 512\\
+    Baseline texte & SBERT all-MiniLM-L6-v2 & 384 (espace séparé)\\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  Normalisation L2 : $z=u/\norm{u}$.
+\end{frame}
+
+% 7 --------------------------------------------------------------- Orateur : FRESNEL
+\begin{frame}{Fusion : tardive, précoce, attention croisée}
+  \small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    & Précoce & \textbf{Tardive} & Attention croisée\\
+    \midrule
+    Entraînement & oui & \textbf{non} & oui\\
+    Modalité manquante & fragile & \textbf{robuste} & fragile\\
+    Interprétable & non & \textbf{oui} & moyen\\
+    \bottomrule
+  \end{tabular}
+  \medskip
+  \[
+    s_{\text{late}}(q,i)=\sum_m w_m\,(q\cdot z_i^m)=q\cdot\bar z_i,\qquad \bar z_i=\sum_m w_m z_i^m,\quad \sum_m w_m=1
+  \]
+  Un seul vecteur par item $\Rightarrow$ un seul index. $w$ réglé sur la validation (grille, rsum).
+\end{frame}
+
+% 8 -------------------------------------------------------------- Orateur : RAPHAËL
+\begin{frame}{Audio : tête alignée par perte contrastive}
+  \small
+  Log-Mel (25\,ms, 10\,ms, 128 bandes) $\to$ AST (1\,212 tokens/10 s) $\to$ MLP $768\to1024\to512$ (1\,312\,256 paramètres).
+  \[
+    \mathcal L=\tfrac12\big(\mathcal L_{x\to y}+\mathcal L_{y\to x}\big),\quad
+    \mathcal L_{x\to y}=-\tfrac1N\sum_i\log\tfrac{e^{S_{ii}}}{\sum_j e^{S_{ij}}},\quad S_{ij}=\tfrac{z^x_i\cdot z^y_j}{\tau}
+  \]
+  \[
+    \frac{\partial\mathcal L_{x\to y}}{\partial z^x_i}=\frac1{N\tau}\sum_j(p_{ij}-\delta_{ij})\,z^y_j
+  \]
+  Ancre : légendes CLIP gelées ; une légende par clip et par lot ; $\tau$ appris (init. $0{,}07$, borné à $0{,}01$).
+\end{frame}
+
+\section{Application}
+% 9 --------------------------------------------------------- Orateur : CLAUDY, RAPHAËL
+\begin{frame}{Application Flask}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}
+        \item Recherche texte, image ou audio (upload), top-$k$, scores cosinus et scores par modalité.
+        \item Filtres : modalité, dataset, split, score minimal ; modes fusionné et mono-modal.
+        \item Légendes d'un item, lecteur audio, classification zero-shot.
+        \item Page embeddings : PCA, t-SNE, UMAP.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \TODO{capture d'écran de l'application}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 10 -------------------------------------------------------- Orateur : CLAUDY, RAPHAËL
+\begin{frame}{Démonstration}
+  \begin{enumerate}
+    \item Texte, mode fusionné, puis mono-modal et filtre « image ».
+    \item Image téléversée : légendes retrouvées.
+    \item Audio téléversé, puis classification zero-shot.
+    \item Page embeddings colorée par classe.
+  \end{enumerate}
+  \TODO{plan B : vidéo enregistrée}
+\end{frame}
+
+\section{Résultats}
+% 11 --------------------------------------------------------------- Orateur : CLAUDY
+\begin{frame}{Texte $\to$ image : mono-modal contre multimodal}
+  \centering\figopt{fig_mono_vs_multi.png}{0.7\textheight}\\[2pt]
+  {\small Flickr8k test, 1\,000 images, leave-one-out. \TODO{chiffres clés et gain}}
+\end{frame}
+
+% 12 ------------------------------------------------------------- Orateur : RAPHAËL
+\begin{frame}{Audio : alignement et zero-shot ESC-50}
+  \centering\figopt{fig_zero_shot_per_class.png}{0.7\textheight}\\[2pt]
+  {\small \TODO{audio$\leftrightarrow$texte R@K ; top-1 et top-5 ESC-50 contre 2\,\% de hasard}}
+\end{frame}
+
+% 13 -------------------------------------------------------------- Orateur : FRESNEL
+\begin{frame}{Ablations et espace commun}
+  \centering
+  \figopt{fig_dim_ablation.png}{0.5\textheight}\hspace{1em}\figopt{fig_proj_tsne.png}{0.5\textheight}\\[2pt]
+  {\small \TODO{effet de $d$, poids $w$ retenu, alignement des modalités}}
+\end{frame}
+
+\section{Biais et conclusion}
+% 14 ----------------------------------------------------------------- Orateur : IDA
+\begin{frame}{Biais et limites de la fusion}
+  \begin{itemize}
+    \item Données : anglais, culture occidentale, personnes et animaux surreprésentés.
+    \item Modalités : texte pivot ; image$\leftrightarrow$audio jamais appariés (évaluation par proxy).
+    \item Alignement : écart entre modalités, scores non calibrés ; dérive Clotho $\to$ ESC-50.
+    \item Fusion : poids global non adaptatif ; leave-one-out $\ne$ usage réel.
+  \end{itemize}
+  \centering\figopt{fig_bias_groups.png}{0.38\textheight}
+\end{frame}
+
+% 15 --------------------------------------------------------------- Orateur : CLAUDY
+\begin{frame}{Conclusion et perspectives}
+  \begin{itemize}
+    \item \TODO{résultat principal chiffré, mono-modal contre multimodal}
+    \item \TODO{résultat audio et zero-shot}
+    \item Perspectives : fine-tuning partiel d'AST, CLAP, attention croisée, légendes en français, annotation humaine image--audio.
+  \end{itemize}
+  \centering\Large Merci. Questions ?
+\end{frame}
+
+\appendix
+\begin{frame}{Annexe : exemple chiffré InfoNCE ($N=2$, $\tau=0{,}1$)}
+  \small
+  $x_1=(1,0),\ x_2=(0,1),\ y_1=(0{,}8660;0{,}5),\ y_2=(0{,}5;0{,}8660)$ \;$\Rightarrow$\; logits $8{,}660$ et $5{,}000$.\\
+  $p_{11}=1/(1+e^{-3{,}66})=0{,}97491$, perte par ligne $=\ln1{,}0257325=0{,}025407$, donc $\mathcal L=0{,}025407$.\\
+  Gradient sur $z^x_1$ : $\frac1{2\cdot0{,}1}\,0{,}025087\,(y_2-y_1)=(-0{,}04591;\,+0{,}04591)$.
+\end{frame}
+
+\begin{frame}{Annexe : budget de calcul}
+  \small
+  \begin{tabular}{lcc}
+    \toprule
+    Encodeur & MACs & Temps CPU (50 GFLOPS)\\
+    \midrule
+    CLIP texte & $2{,}98\cdot10^9$ & $\approx0{,}12$ s\\
+    CLIP image & $4{,}29\cdot10^9$ & $\approx0{,}17$ s\\
+    AST (10 s) & $1{,}30\cdot10^{11}$ & $\approx5{,}2$ s\\
+    \bottomrule
+  \end{tabular}
+\end{frame}
+
+\end{document}
