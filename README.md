@@ -64,3 +64,28 @@ Erreurs : `{"error": {"code": ..., "message": ...}}` avec les statuts 400, 404, 
 | Onglet audio grisé | `artifacts/models/audio_proj.pt` absent : `make train` |
 | 503 `projection_unavailable` | `make projections` (t-SNE et UMAP sont précalculés ; PCA se calcule à la demande) |
 | Mémoire GPU insuffisante | réduire `--chunk` dans `extract_embeddings.py` ou utiliser `--fp16` |
+
+## 7. Déploiement sur Vercel
+
+Le point d’entrée WSGI est [api/index.py](api/index.py). Il importe `app` depuis
+[app/__init__.py](app/__init__.py), où l’objet Flask est créé sous `app = create_app()`.
+Ne placez pas `create_app()` directement dans `pyproject.toml` : ce fichier décrit uniquement
+le paquet Python, ses versions compatibles et ses dépendances minimales.
+
+Configuration déjà prévue à la racine :
+
+- `vercel.json` : commande d’installation, génération des artefacts factices et redirection vers `/api/index`.
+- `requirements-vercel.txt` : dépendances légères nécessaires au mode démo, sans Torch ni les gros modèles.
+- `.env.example` : modèle local des variables à copier dans `.env` pour le développement.
+- `.env` : fichier local ignoré par Git (ne jamais y mettre de secret).
+
+Pour Vercel, ajoutez cette variable dans **Project Settings → Environment Variables** :
+
+```text
+MMSEARCH_LOAD_MODELS=0
+```
+
+Pour un déploiement complet avec les vrais modèles, utilisez une plateforme disposant d’assez de mémoire,
+de disque et de temps de démarrage, ajoutez les fichiers sous `artifacts/` et définissez
+`MMSEARCH_LOAD_MODELS=1`. Sur Vercel, le mode `0` est le mode recommandé pour éviter les dépassements
+de taille et les téléchargements de modèles au démarrage.
