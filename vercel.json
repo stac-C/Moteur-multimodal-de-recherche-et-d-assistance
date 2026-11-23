@@ -1,5 +1,5 @@
 {
-  "installCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements-vercel.txt && python -m pip install -e .",
+  "installCommand": "uv pip install --system -r requirements-vercel.txt && uv pip install --system --no-deps -e .",
   "buildCommand": "python scripts/make_fake_artifacts.py --n-img 200 --n-aud 100",
   "rewrites": [
     {
