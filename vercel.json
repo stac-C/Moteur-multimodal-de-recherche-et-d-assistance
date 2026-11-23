@@ -1,15 +1,22 @@
 {
-  "installCommand": "uv pip install --system -r requirements-vercel.txt && uv pip install --system --no-deps -e .",
-  "buildCommand": "python scripts/make_fake_artifacts.py --n-img 200 --n-aud 100",
+  "$schema": "https://vercel.sh",
+  "installCommand": "cd /vercel/path0 && uv pip install -r requirements-vercel.txt && uv pip install --no-deps -e .",
+  "buildCommand": "cd /vercel/path0 && python scripts/make_fake_artifacts.py --n-img 200 --n-aud 100",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
+    { "source": "/(.*)", "destination": "/api/index" }
   ],
   "functions": {
     "api/index.py": {
       "includeFiles": "artifacts/**"
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ]
 }
+
+
+
