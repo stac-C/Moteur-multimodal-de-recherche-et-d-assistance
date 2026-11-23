@@ -7,17 +7,14 @@ from pathlib import Path
 from typing import Optional
 
 from flask import Flask
-from dotenv import load_dotenv
 
 from app.errors import register_error_handlers
 from mmsearch.config import Config, load_config
 from mmsearch.retrieval.engine import SearchEngine
 
 
-MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
-ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 
 def create_app(cfg: Optional[Config] = None, engine: Optional[SearchEngine] = None) -> Flask:
@@ -39,7 +36,3 @@ def create_app(cfg: Optional[Config] = None, engine: Optional[SearchEngine] = No
         app.register_blueprint(module.bp)
     register_error_handlers(app)
     return app
-
-
-# Entry-point WSGI utilisé par les serveurs compatibles Flask/Vercel.
-app = create_app()
