@@ -110,7 +110,12 @@ def main() -> None:
         name = f"ast_raw_{a.dataset}.npy"
         save_embeddings(
             E / name,
-            encode_in_chunks(enc.encode_raw, paths, E / name, max(1, a.chunk // 10)),
+            encode_in_chunks(
+                lambda batch: enc.encode_raw(batch, batch_size=4),
+                paths,
+                E / name,
+                max(1, a.chunk // 10),
+            ),
             m["item_id"].tolist(),
             dim=AST_DIM,
             normalized=False,

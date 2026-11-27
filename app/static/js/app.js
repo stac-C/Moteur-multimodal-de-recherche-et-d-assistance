@@ -17,7 +17,7 @@
     tabs.forEach((t) => t.classList.toggle("active", t.dataset.kind === k));
     $("#field-text").classList.toggle("hidden", k !== "text");
     $("#field-file").classList.toggle("hidden", k === "text");
-    $("#classify").classList.toggle("hidden", k !== "audio");
+    $("#classify").classList.toggle("hidden", k !== "audio" || caps.audio !== true || caps.classify !== true);
     $("#file").accept = k === "image" ? "image/*,.jpg,.jpeg,.png,.webp" : ".wav,.mp3,.flac,.ogg,audio/*";
     $("#file").value = ""; $("#preview").replaceChildren(); $("#classes").classList.add("hidden");
   }

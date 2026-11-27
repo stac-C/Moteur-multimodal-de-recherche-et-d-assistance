@@ -16,7 +16,6 @@ bp = Blueprint("audio", __name__)
 @bp.post("/api/classify")
 def api_classify():
     engine = current_app.extensions["engine"]
-    data, ext = read_upload("file", AUDIO_EXT)
     classes = None
     if request.form.get("classes"):
         try:
@@ -26,6 +25,11 @@ def api_classify():
             raise ApiError(
                 400, "invalid_query", "classes doit être une liste JSON de chaînes"
             ) from e
+    if not engine.esc_classes and not classes:
+        raise ApiError(
+            503, "classification_unavailable", "les classes ESC-50 ne sont pas disponibles"
+        )
+    data, ext = read_upload("file", AUDIO_EXT)
     t0 = time.perf_counter()
     top = engine.classify_audio(data, classes, suffix=ext)
     return jsonify(

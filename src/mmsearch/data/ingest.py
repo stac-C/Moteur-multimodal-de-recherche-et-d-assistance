@@ -105,16 +105,29 @@ def ingest_clotho(cfg: Config) -> tuple[list[dict], list[dict]]:
 
 def ingest_esc50(cfg: Config) -> list[dict]:
     base = cfg.raw / "esc50"
-    df = pd.read_csv(base / "meta" / "esc50.csv", dtype=str, keep_default_na=False)
+    metadata = base / "meta" / "esc50.csv"
+    if not metadata.is_file():
+        metadata = base / "esc50.csv"
+    if not metadata.is_file():
+        raise FileNotFoundError(f"métadonnées ESC-50 introuvables dans {base}")
+    df = pd.read_csv(metadata, dtype=str, keep_default_na=False)
     items = []
     for n, (_, row) in enumerate(df.sort_values("filename").iterrows()):
+        filename = row["filename"]
+        wav = base / "audio" / filename
+        if not wav.is_file():
+            nested_wav = base / "audio" / "audio" / filename
+            if nested_wav.is_file():
+                wav = nested_wav
+            else:
+                raise FileNotFoundError(f"fichier ESC-50 introuvable : {filename}")
         items.append(
             dict(
                 item_id=f"esc_{n:06d}",
                 modality="audio",
                 dataset="esc50",
                 split="test",
-                path=_rel(cfg, base / "audio" / row["filename"]),
+                path=_rel(cfg, wav),
                 label=row["category"],
                 duration_s="5.00",
             )

@@ -1,7 +1,7 @@
 # Cibles principales (voir README.md). Exécuter depuis la racine du dépôt.
 PY ?= python
 
-.PHONY: install fake test lint data embed train index fusion projections eval figures bias app report slides clean
+.PHONY: install fake test lint data embed embed-audio-app train index fusion projections eval figures bias app report slides clean
 
 install:
 	pip install -e . && pip install -r requirements.txt
@@ -26,7 +26,14 @@ embed:                      ## extraction des embeddings (GPU recommandé)
 	$(PY) scripts/extract_embeddings.py --stage audio_raw --dataset clotho
 	$(PY) scripts/extract_embeddings.py --stage audio_raw --dataset esc50
 
-train:                      ## tête audio, projection ESC-50, fusion précoce
+embed-audio-app:            ## pipeline audio pour la plateforme (Clotho, sans embeddings ESC-50 de test)
+	$(PY) -m mmsearch.data.ingest
+	$(PY) scripts/extract_embeddings.py --stage text --dataset clotho
+	$(PY) scripts/extract_embeddings.py --stage audio_raw --dataset clotho
+	$(PY) -m mmsearch.training.train_audio_proj
+	$(PY) -m mmsearch.index.build_index
+
+train:                      ## tête audio et fusion précoce
 	$(PY) -m mmsearch.training.train_audio_proj
 	$(PY) scripts/extract_embeddings.py --stage audio_proj --dataset esc50
 	$(PY) -m mmsearch.training.train_early_fusion

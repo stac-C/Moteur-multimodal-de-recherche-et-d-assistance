@@ -8,8 +8,6 @@ application Flask, évaluation Recall@K / Precision@K.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Windows : .venv\Scripts\activate
-pip install -e .                                        # pip install -e . puis requirements.txt
-pip install  requirements.txt                           # pip install -e . puis requirements.txt
 make install                                           # pip install -e . puis requirements.txt
 make test                                              # tests sans GPU ni modèles
 ```
@@ -25,10 +23,12 @@ Sans modèles les onglets de recherche sont désactivés ; la page Embeddings fo
 
 ## 3. Exécution complète avec les vrais datasets
 
-1. Télécharger Flickr8k, Clotho v2 et ESC-50 dans `data/raw/` (arborescence dans `src/mmsearch/data/ingest.py`).
+1. Télécharger Flickr8k, Clotho v2 et ESC-50 dans `data/raw/` (arborescence dans
+   `src/mmsearch/data/ingest.py`). ESC-50 sert à la classification audio zero-shot ; sans ses fichiers,
+   cette classification est désactivée, mais la recherche audio sur Clotho reste disponible.
 2. `make data` : écrit `data/processed/manifest.csv` et `captions.csv`.
 3. `make embed` : extraction des embeddings (GPU T4 recommandé : Colab / Kaggle, reprise automatique).
-4. `make train` : tête audio (`artifacts/models/audio_proj.pt`), projection ESC-50, fusion précoce.
+4. `make train` : tête audio (`artifacts/models/audio_proj.pt`), projection ESC-50 et fusion précoce.
 5. `make fusion` : règle les poids de la fusion tardive ; reporter `best_w_mod` dans `config.yaml`.
 6. `make index` : construit `artifacts/index/*.faiss` et `collection.db`.
 7. `make projections` : PCA, t-SNE et UMAP précalculés pour la page Embeddings.
@@ -37,6 +37,11 @@ Sans modèles les onglets de recherche sont désactivés ; la page Embeddings fo
 
 L'encodage d'un clip audio envoyé par l'utilisateur prend environ 5 s sur CPU (clip tronqué à 10 s dans
 la démo) ; activer `device: cuda` dans `config.yaml` si une machine GPU est disponible.
+
+Pour préparer uniquement la recherche audio de la plateforme sans recalculer les embeddings Flickr8k
+ni les embeddings ESC-50 d'évaluation, lancer `make embed-audio-app`. Les classes ESC-50 utilisées par
+la classification des requêtes sont lues depuis `esc50.csv`; l'encodeur AST et son checkpoint audio
+restent nécessaires.
 
 ## 4. API
 
@@ -62,30 +67,6 @@ Erreurs : `{"error": {"code": ..., "message": ...}}` avec les statuts 400, 404, 
 |---|---|
 | `FileNotFoundError` sur un `.npy` | l'étape précédente (`make embed`, `make train`) n'a pas été lancée |
 | Onglet audio grisé | `artifacts/models/audio_proj.pt` absent : `make train` |
+| Classification audio indisponible | Ajouter ESC-50 dans `data/raw/esc50/audio/` et `data/raw/esc50/meta/esc50.csv` ; la recherche audio Clotho n'en dépend pas |
 | 503 `projection_unavailable` | `make projections` (t-SNE et UMAP sont précalculés ; PCA se calcule à la demande) |
 | Mémoire GPU insuffisante | réduire `--chunk` dans `extract_embeddings.py` ou utiliser `--fp16` |
-
-## 7. Déploiement sur Vercel
-
-Le point d’entrée WSGI est [api/index.py](api/index.py). Il importe `app` depuis
-[app/__init__.py](app/__init__.py), où l’objet Flask est créé sous `app = create_app()`.
-Ne placez pas `create_app()` directement dans `pyproject.toml` : ce fichier décrit uniquement
-le paquet Python, ses versions compatibles et ses dépendances minimales.
-
-Configuration déjà prévue à la racine :
-
-- `vercel.json` : commande d’installation, génération des artefacts factices et redirection vers `/api/index`.
-- `requirements-vercel.txt` : dépendances légères nécessaires au mode démo, sans Torch ni les gros modèles.
-- `.env.example` : modèle local des variables à copier dans `.env` pour le développement.
-- `.env` : fichier local ignoré par Git (ne jamais y mettre de secret).
-
-Pour Vercel, ajoutez cette variable dans **Project Settings → Environment Variables** :
-
-```text
-MMSEARCH_LOAD_MODELS=0
-```
-
-Pour un déploiement complet avec les vrais modèles, utilisez une plateforme disposant d’assez de mémoire,
-de disque et de temps de démarrage, ajoutez les fichiers sous `artifacts/` et définissez
-`MMSEARCH_LOAD_MODELS=1`. Sur Vercel, le mode `0` est le mode recommandé pour éviter les dépassements
-de taille et les téléchargements de modèles au démarrage.

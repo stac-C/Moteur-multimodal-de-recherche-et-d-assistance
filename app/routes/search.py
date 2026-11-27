@@ -64,7 +64,9 @@ def parse_search_request(cfg) -> Query:
 
 @bp.get("/")
 def index():
-    return render_template("index.html", caps=current_app.extensions["engine"].capabilities())
+    engine = current_app.extensions["engine"]
+    caps = {**engine.capabilities(), "classify": bool(engine.esc_classes)}
+    return render_template("index.html", caps=caps)
 
 
 @bp.post("/api/search")

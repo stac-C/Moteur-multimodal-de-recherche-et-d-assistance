@@ -117,6 +117,16 @@ def test_item_media_classify(client):
     assert bad.status_code == 400
 
 
+def test_classification_unavailable_without_esc50(client):
+    client.application.extensions["engine"].esc_classes = []
+
+    page = client.get("/")
+    assert b'"classify": false' in page.data
+    response = client.post("/api/classify")
+    assert response.status_code == 503
+    assert response.get_json()["error"]["code"] == "classification_unavailable"
+
+
 def test_embeddings_api(client):
     j = client.get("/api/embeddings?method=pca&limit=100").get_json()
     assert j["n_points"] == 100 and len(j["explained_variance"]) == 2
